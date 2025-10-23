@@ -47,6 +47,9 @@ processors:
 
 exporters:
   logicmonitor:
+    metrics:
+      batch_timeout: 10s            # Maximum time to wait before sending a batch (default: 200ms, 0 = immediate)
+      auto_create_resource: true   # Auto-create resources if they don't exist (default: true)
     # Target URL to send metrics to LogicMonitor Push Metrics API
     # Note: Must include /rest path as per LogicMonitor API documentation
     endpoint: "https://${env:LM_COMPANY}.logicmonitor.com/rest"
