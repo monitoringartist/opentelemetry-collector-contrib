@@ -364,7 +364,7 @@ func (s *Sender) sendDataPoint(ctx context.Context, resourceName string, resourc
 	}
 
 	// Create instance input from attributes
-	instanceName := "metrics"  #metricName // Use metric name as instance name
+	instanceName := "metrics"  //metricName // Use metric name as instance name
 	instanceProperties := convertAttributes(attributes)
 
 	// Create datapoint with timestamp
