@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
 
 	"go.opentelemetry.io/collector/config/confighttp"
 	"go.opentelemetry.io/collector/config/configopaque"
@@ -30,29 +29,11 @@ type Config struct {
 	APIToken APIToken `mapstructure:"api_token"`
 	// Logs defines the Logs exporter specific configuration
 	Logs LogsConfig `mapstructure:"logs"`
-	// Metrics defines the Metrics exporter specific configuration
-	Metrics MetricsConfig `mapstructure:"metrics"`
 }
 
 type APIToken struct {
 	AccessID  string              `mapstructure:"access_id"`
 	AccessKey configopaque.String `mapstructure:"access_key"`
-	// prevent unkeyed literal initialization
-	_ struct{}
-}
-
-// MetricsConfig defines the metrics exporter specific configuration options
-type MetricsConfig struct {
-	// AutoCreateResource controls whether to automatically create resources if they don't exist
-	// Maps to the "create" query parameter in the Push Metrics API
-	// Default: true
-	AutoCreateResource bool `mapstructure:"auto_create_resource"`
-	
-	// BatchTimeout is the maximum time to wait before sending a batch
-	// If set to 0, data will be sent immediately (subject to max payload size limit)
-	// Default: 200ms
-	BatchTimeout time.Duration `mapstructure:"batch_timeout"`
-	
 	// prevent unkeyed literal initialization
 	_ struct{}
 }

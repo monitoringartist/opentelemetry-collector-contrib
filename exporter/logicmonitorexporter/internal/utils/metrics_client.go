@@ -51,36 +51,36 @@ type MetricsClient struct {
 
 // MetricPayload represents the metric data to be sent to LogicMonitor
 type MetricPayload struct {
-	ResourceName            string                       `json:"resourceName"`
-	ResourceIDs             map[string]string            `json:"resourceIds"`
-	DataSource              string                       `json:"dataSource,omitempty"`
-	DataSourceDisplayName   string                       `json:"dataSourceDisplayName,omitempty"`
-	DataSourceGroup         string                       `json:"dataSourceGroup,omitempty"`
-	Instances               []MetricInstance             `json:"instances"`
+	ResourceName          string            `json:"resourceName"`
+	ResourceIDs           map[string]string `json:"resourceIds"`
+	DataSource            string            `json:"dataSource,omitempty"`
+	DataSourceDisplayName string            `json:"dataSourceDisplayName,omitempty"`
+	DataSourceGroup       string            `json:"dataSourceGroup,omitempty"`
+	Instances             []MetricInstance  `json:"instances"`
 }
 
 // MetricInstance represents an instance within a datasource
 type MetricInstance struct {
-	InstanceName           string            `json:"instanceName"`
-	InstanceDisplayName    string            `json:"instanceDisplayName,omitempty"`
-	InstanceProperties     map[string]string `json:"instanceProperties,omitempty"`
-	DataPoints             []MetricDataPoint `json:"dataPoints"`
+	InstanceName        string            `json:"instanceName"`
+	InstanceDisplayName string            `json:"instanceDisplayName,omitempty"`
+	InstanceProperties  map[string]string `json:"instanceProperties,omitempty"`
+	DataPoints          []MetricDataPoint `json:"dataPoints"`
 }
 
 // MetricDataPoint represents a single datapoint
 type MetricDataPoint struct {
-	DataPointName            string            `json:"dataPointName"`
-	DataPointDescription     string            `json:"dataPointDescription,omitempty"`
-	DataPointType            string            `json:"dataPointType,omitempty"`
-	DataPointAggregationType string            `json:"dataPointAggregationType,omitempty"`
-	PercentileValue          int               `json:"percentileValue,omitempty"`
+	DataPointName            string                 `json:"dataPointName"`
+	DataPointDescription     string                 `json:"dataPointDescription,omitempty"`
+	DataPointType            string                 `json:"dataPointType,omitempty"`
+	DataPointAggregationType string                 `json:"dataPointAggregationType,omitempty"`
+	PercentileValue          int                    `json:"percentileValue,omitempty"`
 	Values                   map[string]interface{} `json:"values"`
 }
 
 // MetricResponse represents the response from LogicMonitor API
 type MetricResponse struct {
-	Success bool               `json:"success"`
-	Message string             `json:"message"`
+	Success bool                `json:"success"`
+	Message string              `json:"message"`
 	Errors  []MetricErrorDetail `json:"errors,omitempty"`
 }
 
@@ -117,7 +117,7 @@ func (c *MetricsClient) SendMetrics(ctx context.Context, payload *MetricPayload,
 	if c.autoCreateResource {
 		queryString = "?create=true"
 	}
-	
+
 	// Create HTTP request with query string
 	url := c.endpoint + metricsIngestPath + queryString
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
@@ -134,6 +134,13 @@ func (c *MetricsClient) SendMetrics(ctx context.Context, payload *MetricPayload,
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", auth)
+
+	// DEBUG: Log authentication details
+	c.logger.Debug("Push Metrics Request",
+		zap.String("url", url),
+		zap.String("auth_header", auth),
+		zap.Int64("timestamp", timestamp),
+		zap.Int("body_length", len(body)))
 
 	// Send request
 	resp, err := c.client.Do(req)
@@ -176,12 +183,12 @@ func (c *MetricsClient) SendMetrics(ctx context.Context, payload *MetricPayload,
 			metricResp.Message = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 		}
 		metricResp.Success = false
-		
+
 		c.logger.Error("LogicMonitor API returned error",
 			zap.Int("status_code", resp.StatusCode),
 			zap.String("message", metricResp.Message),
 			zap.Any("errors", metricResp.Errors))
-		
+
 		// Return HTTPError to allow caller to detect client errors (4xx) vs server errors (5xx)
 		return &metricResp, &HTTPError{
 			StatusCode: resp.StatusCode,
@@ -203,14 +210,23 @@ func (c *MetricsClient) generateAuth(method, path, body string, timestamp int64)
 	stringToSign := method + strconv.FormatInt(timestamp, 10) + body + path
 
 	// Generate HMAC SHA256 signature
-	// LogicMonitor SDK: hex encode the hash, then base64 encode the hex string
+	// LogicMonitor Push Metrics API: hex encode the hash, then base64 encode the hex string
+	// Per official docs: https://www.logicmonitor.com/support/push-metrics/ingesting-metrics-with-the-push-metrics-rest-api
 	h := hmac.New(sha256.New, []byte(c.accessKey))
 	h.Write([]byte(stringToSign))
 	hash := h.Sum(nil)
 	hexString := hex.EncodeToString(hash)
 	signature := base64.StdEncoding.EncodeToString([]byte(hexString))
 
+	// DEBUG: Log signature details
+	c.logger.Debug("Auth signature generation",
+		zap.String("method", method),
+		zap.String("path", path),
+		zap.Int("body_length", len(body)),
+		zap.Int64("timestamp_ms", timestamp),
+		zap.String("hex_sig_prefix", hexString[:40]),
+		zap.String("base64_sig_prefix", signature[:40]))
+
 	// Return formatted auth header using milliseconds timestamp
 	return fmt.Sprintf("LMv1 %s:%s:%d", c.accessID, signature, timestamp)
 }
-

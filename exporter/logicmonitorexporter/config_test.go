@@ -7,7 +7,6 @@ import (
 	"errors"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,10 +96,6 @@ func TestLoadConfig(t *testing.T) {
 	cm, err := confmaptest.LoadConf(filepath.Join("testdata", "config.yaml"))
 	require.NoError(t, err)
 
-	// Create expected queue settings with LogicMonitor rate limits
-	expectedQueueSettings := exporterhelper.NewDefaultQueueConfig()
-	expectedQueueSettings.QueueSize = 10000 // Match LogicMonitor's 10,000 requests/minute limit
-
 	tests := []struct {
 		id       component.ID
 		expected component.Config
@@ -109,7 +104,7 @@ func TestLoadConfig(t *testing.T) {
 			id: component.NewIDWithName(metadata.Type, "apitoken"),
 			expected: &Config{
 				BackOffConfig: configretry.NewDefaultBackOffConfig(),
-				QueueSettings: expectedQueueSettings,
+				QueueSettings: exporterhelper.NewDefaultQueueConfig(),
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "https://company.logicmonitor.com/rest",
 				},
@@ -117,34 +112,26 @@ func TestLoadConfig(t *testing.T) {
 					AccessID:  "accessid",
 					AccessKey: "accesskey",
 				},
-			Metrics: MetricsConfig{
-				AutoCreateResource: true,
-				BatchTimeout:       200 * time.Millisecond,
-			},
 			},
 		},
 		{
 			id: component.NewIDWithName(metadata.Type, "bearertoken"),
 			expected: &Config{
 				BackOffConfig: configretry.NewDefaultBackOffConfig(),
-				QueueSettings: expectedQueueSettings,
+				QueueSettings: exporterhelper.NewDefaultQueueConfig(),
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "https://company.logicmonitor.com/rest",
 					Headers: map[string]configopaque.String{
 						"Authorization": "Bearer <token>",
 					},
 				},
-			Metrics: MetricsConfig{
-				AutoCreateResource: true,
-				BatchTimeout:       200 * time.Millisecond,
-			},
 			},
 		},
 		{
 			id: component.NewIDWithName(metadata.Type, "resource-mapping-op"),
 			expected: &Config{
 				BackOffConfig: configretry.NewDefaultBackOffConfig(),
-				QueueSettings: expectedQueueSettings,
+				QueueSettings: exporterhelper.NewDefaultQueueConfig(),
 				ClientConfig: confighttp.ClientConfig{
 					Endpoint: "https://company.logicmonitor.com/rest",
 					Headers: map[string]configopaque.String{
@@ -154,10 +141,6 @@ func TestLoadConfig(t *testing.T) {
 				Logs: LogsConfig{
 					ResourceMappingOperation: "or",
 				},
-			Metrics: MetricsConfig{
-				AutoCreateResource: true,
-				BatchTimeout:       200 * time.Millisecond,
-			},
 			},
 		},
 	}
