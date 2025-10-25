@@ -328,12 +328,13 @@ func (s *Sender) addSummaryToBatch(ctx context.Context, batch *metricBatch, batc
 // createMetricInstance creates a MetricInstance from metric data
 // Returns the instance and the timestamp string (Unix seconds)
 func (s *Sender) createMetricInstance(metricName string, value float64, timestamp pcommon.Timestamp, attributes pcommon.Map, metricType string) (lmutils.MetricInstance, string) {
-	instanceName := metricName
+	//instanceName := metricName
+	instanceName := getInstanceName(attributes)
 	instanceProperties := convertAttributes(attributes)
 	timestampStr := strconv.FormatInt(timestamp.AsTime().Unix(), 10)
 
 	instance := lmutils.MetricInstance{
-		InstanceName:        sanitizeName(instanceName),
+		InstanceName:        instanceName, // Keep display name readable (no sanitization) sanitizeName(instanceName),
 		InstanceDisplayName: sanitizeName(instanceName),
 		InstanceProperties:  instanceProperties,
 		DataPoints: []lmutils.MetricDataPoint{
@@ -728,6 +729,16 @@ func getResourceID(attrs pcommon.Map) map[string]string {
 		resourceID["system.displayname"] = "unknown"
 	}
 	return resourceID
+}
+
+func getInstanceName(attrs pcommon.Map) string {
+	attributes := []string{"k8s.pod.name", "kubernetes_pod_name", "pod", "instance", "job"}
+	for _, attr := range attributes {
+		if value, exists := attrs.Get(attr); exists {
+			return value.Str()
+		}
+	}
+	return "unknown-instance"
 }
 
 func convertAttributes(attrs pcommon.Map) map[string]string {
