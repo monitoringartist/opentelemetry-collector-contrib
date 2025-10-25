@@ -6,10 +6,10 @@ receivers:
   prometheus:
     config:
       scrape_configs:
-      # - job_name: otel-collector-metrics
-      #   scrape_interval: 10s
-      #   static_configs:
-      #   - targets: ['127.0.0.1:8888']
+      - job_name: otel-collector-metrics
+        scrape_interval: 10s
+        static_configs:
+        - targets: ['127.0.0.1:8888']
       - job_name: grafana-metrics7
         scrape_interval: 10s
         static_configs:

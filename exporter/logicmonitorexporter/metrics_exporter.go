@@ -38,13 +38,19 @@ func (e *metricsExporter) start(ctx context.Context, host component.Host) error 
 		return fmt.Errorf("failed to create http client: %w", err)
 	}
 
-	accessID := e.config.APIToken.AccessID
-	accessKey := string(e.config.APIToken.AccessKey)
-	autoCreateResource := e.config.Metrics.AutoCreateResource
-	batchTimeout := e.config.Metrics.BatchTimeout
-
 	ctx, e.cancel = context.WithCancel(ctx)
-	e.sender, err = metrics.NewSender(e.config.Endpoint, client, accessID, accessKey, autoCreateResource, batchTimeout, e.settings.Logger)
+	
+	// Use Jan's sender signature with custom MetricsClient
+	// autoCreateResource=true, batchTimeout=0 (no timeout)
+	e.sender, err = metrics.NewSender(
+		e.config.Endpoint,
+		client,
+		e.config.APIToken.AccessID,
+		string(e.config.APIToken.AccessKey),
+		true,  // autoCreateResource
+		0,     // batchTimeout (0 = no timeout)
+		e.settings.Logger,
+	)
 	if err != nil {
 		return err
 	}

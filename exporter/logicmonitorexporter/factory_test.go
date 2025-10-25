@@ -5,7 +5,6 @@ package logicmonitorexporter
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.opentelemetry.io/collector/component/componenttest"
@@ -22,17 +21,9 @@ func TestCreateDefaultConfig(t *testing.T) {
 	factory := NewFactory()
 	cfg := factory.CreateDefaultConfig()
 
-	// Expect default queue settings with LogicMonitor rate limit-aware queue size
-	expectedQueueSettings := exporterhelper.NewDefaultQueueConfig()
-	expectedQueueSettings.QueueSize = 10000 // LogicMonitor allows 10,000 requests/minute
-
 	assert.Equal(t, &Config{
 		BackOffConfig: configretry.NewDefaultBackOffConfig(),
-		QueueSettings: expectedQueueSettings,
-		Metrics: MetricsConfig{
-			AutoCreateResource: true,                   // Default to auto-creating resources
-			BatchTimeout:       200 * time.Millisecond, // Default batch timeout
-		},
+		QueueSettings: exporterhelper.NewDefaultQueueConfig(),
 	}, cfg, "failed to create default config")
 
 	assert.NoError(t, componenttest.CheckConfigStruct(cfg))
